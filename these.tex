@@ -1,0 +1,65 @@
+%!TEX TS-program = xelatex
+%!TEX encoding = UTF-8 Unicode
+
+\documentclass{harvard-thesis}
+
+\hyphenation{obj-ec-tif}
+\usepackage{pdfpages}
+
+
+\setcounter{tocdepth}{4}
+\usepackage{caption}
+\usepackage[document]{ragged2e}
+\setlength\leftskip{0pt plus 1fil}
+\setlength\rightskip{-\leftskip}
+\setlength\parfillskip{\leftskip}
+
+\begin{document}
+
+
+%\includepdf[pages={1}]{couverture_these.pdf}
+
+
+% the front matter
+%\input{frontmatter/coverpage}
+%\maketitle
+%\copyrightpage
+
+%\pageresume
+
+%\abstractpage
+
+\tableofcontents
+%\authorlist
+
+%\listoffigures
+
+%\dedicationpage
+
+%\acknowledgments
+
+%\onehalfspacing
+
+\justify
+% include each chapter...
+\include{chapters/intro}
+\include{chapters/etude}
+\include{chapters/etatdelart}
+\include{chapters/similarite}
+\include{chapters/geste}
+\include{chapters/conclusion}
+
+\singlespacing
+
+% the back matter
+\clearpage
+\bibliography{references}
+\addcontentsline{toc}{chapter}{Références}
+\bibliographystyle{plainnat}
+
+\appendix
+\include{chapters/corpus}
+
+\include{endmatter/colophon}
+
+\end{document}
