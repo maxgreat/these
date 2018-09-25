@@ -11,7 +11,8 @@
 
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesClass{harvard-thesis}[2012/04/05 v0.4 Harvard University Thesis Class]
-\LoadClass[12pt, oneside, letterpaper]{book}
+%\LoadClass[12pt, oneside, letterpaper]{book}
+\LoadClass[12pt, twoside, a4paper]{book}
 
 
 % Required packages
@@ -65,7 +66,7 @@
 \nobibliography*        
 
 \RequirePackage{lettrine} % big letter at start of chapter
-\RequirePackage[width=5in, letterpaper]{geometry}
+\RequirePackage[width=5.5in, height=9in, a4paper]{geometry}
 
 \RequirePackage{fancyhdr} 
 \pagestyle{plain} % options: empty , plain , fancy
@@ -74,7 +75,7 @@
 \RequirePackage{titling}
 \RequirePackage{setspace} 
 \RequirePackage{booktabs} % for much better looking tables
-\RequirePackage[labelfont={sf,bf,small},textfont={sf,small},justification=RaggedRight,margin=0pt, figurewithin=section, tablewithin=section]{caption}
+\RequirePackage[labelfont={sf,bf,small},textfont={sf,small},justification=RaggedRight,margin=0pt]{caption}
 \onehalfspacing
 %\raggedright
 
@@ -144,7 +145,7 @@ BoldItalicFont=ArnoPro-BoldItalic
 	\Huge \textcolor{Crimson}{\textit{\thetitle}} \normalsize \\ \sc \vspace{100pt}
 	Thèse présentée et soutenue\\ par\\
 	\theauthor\\ 
-	En vu le l'obtention du titre de \\ \@degree\\ 
+	En vue le l'obtention du titre de \\ \@degree\\ 
 	\vspace{12pt}
 	\@department\\ 
 	\vspace{12pt}
@@ -165,7 +166,6 @@ BoldItalicFont=ArnoPro-BoldItalic
 
 \newcommand{\pageresume}{
 	\newpage
-	\pagenumbering{roman}
 	\setcounter{page}{3}
 	\pagestyle{fancy}
 	\lhead{Directeurs de thèse : \@advisor} \rhead{\@author}
@@ -186,7 +186,6 @@ BoldItalicFont=ArnoPro-BoldItalic
 
 \newcommand{\abstractpage}{
 	\newpage
-	\pagenumbering{roman}
 	\setcounter{page}{3}
 	\pagestyle{fancy}
 	\lhead{Supervisors : \@advisor} \rhead{\@author}
@@ -229,8 +228,7 @@ BoldItalicFont=ArnoPro-BoldItalic
 	\input{frontmatter/thanks}
 	\vspace*{\fill} 
 	\newpage
-	\setcounter{page}{1}
-	\pagenumbering{arabic}}
+	\setcounter{page}{1}}
 	
 % An environment for paragraph-style section
 \providecommand\newthought[1]{%

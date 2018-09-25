@@ -1,0 +1,453 @@
+\chapter{Detection de régions d'intérêts }
+\label{chap:regions}
+
+Dans une collection d'image représentant un certains nombre d'objets, les prises de vue pour être multiple, de différents angle, à une disntace pouvant variée. 
+Il devient donc intéressant de s'intéresser à la position de l'objet dans l'image, que nous appelons région d'intérêt.
+La detection de la position dans l'objet dans l'image permet un meilleur plongement de l'image.
+Le plongement peut se faire uniquement sur la partie de l'image contenant l'objet, ce qui permet d'éliminer les autres objets pouvant être présents sur l'image, car des objets à peine visible ou avec seulement une petite partie visible.
+Le plongement créé est alors plus à même de représenter l'oeuvre que le plongement de l'image entière.
+Dans le cadre de notre projet, nous ne disposons pas d'annotation des régions d'intérêt dans les images (voir section~\ref{sec:contraintesGUIMUTEIC}). 
+
+
+\section{Carte d'activation}
+
+Des solution à base de réseaux à proposition de région (RPN pour Region Pooling Network) permettent une proposition automatique des régions par le réseaux. 
+Les méthodes de l'état de l'art utilise ce genre d'approche (section~\ref{sec:rpn}, qui permettent d'obtenir une segmentation précise et une amélioration des résultats~\ref{gordo2016deep}.
+Ces genre de méthodes nécessite toutefois un ensemble d'images annotées avec leurs régions pour fonctionner. 
+Nous ne disposons pas d'une base de donnée annotées au niveau des régions. 
+Ceci nous amène à développer des solutions ne nécessitant pas la présence de boite englobante dans le corpus d'apprentissage.
+
+Nous avons vu dans la section précédente qu'un apprentissage fin est nécessaire (étape 1 et 2).
+Ceci ne donne pas en soit de bon résultats pour l'identification d'instance, mais permet d'avoir une première proposition pour les régions.
+Le réseau est utilisé sur les images cibles de manière striée sur l'ensemble de l'image, c'est-à-dire en faisant passer chaque sous partie de l'image dans le réseau.
+Chaque zone de l'image est alors accompagné d'un activation du réseau. 
+En prenant le maximum d'activation, il est possible de créer des zone d'activation correspondant aux différentes classes, ce qui permet de créer une carte d'activation (heat map).
+Sur la figure~\ref{fig:heatmaps} les cartes d'activations sur des images du musée sont représentées.
+Avec un réseau entrainé à reconnaitre chaque catégorie, les cartes d'activations permettent d'avoir une idée d'où se trouve l'objet dans l'image, même si la classification de chaque région ou de l'image entière n'est pas correcte.
+
+
+\begin{figure}[!htb]
+  \centering
+  \begin{minipage}[c]{.33\linewidth}
+    \includegraphics[width=\textwidth]{figures/sample1_10A-0519.png}
+    %\caption{Image with label 10A\label{fig:sample1_id}}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.33\linewidth}
+    \includegraphics[width=\textwidth]{figures/sample1_heatmap.png}
+    %\caption{Heat-map for 10A\label{fig:sample1_hm}}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.32\linewidth}
+    \includegraphics[width=\textwidth]{figures/sample1_labels.png}
+    %\caption{Label-map for 10A\label{fig:sample1_lab}}
+  \end{minipage}
+
+  \begin{minipage}[c]{.33\linewidth}
+    \includegraphics[width=\linewidth]{figures/sample2_5P-0508.png}
+    %\caption{Image with label 5P\label{fig:sample2_id}}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.33\linewidth}
+    \includegraphics[width=\linewidth]{figures/sample2_heatmap.png}
+    %\caption{Heat-map for 5P\label{fig:sample2_hm}}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.32\linewidth}
+    \includegraphics[width=\linewidth]{figures/sample2_labels.png}
+    %\caption{Label-map for 5P\label{fig:sample2_lab}}
+  \end{minipage}
+  
+  \begin{minipage}[c]{.33\linewidth}
+    \includegraphics[width=\linewidth]{figures/sample3_30P-0976.png}
+    %\caption{Image with label 30P\label{fig:sample3_id}}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.33\linewidth}
+    \includegraphics[width=\linewidth]{figures/sample3_heatmap.png}
+    %\caption{Heat-map for 30P\label{fig:sample3_hm}}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.32\linewidth}
+    \includegraphics[width=\linewidth]{figures/sample3_labels.png}
+    %\caption{Label-map for 30P\label{fig:sample3_lab}}
+  \end{minipage}
+
+
+	\caption{Exemple d'images avec les heat-map des activations maximales, obtenues à partir d'un ResNet-152 après un apprentissage fin. Le réseau est appliqué sur toute l'image de manière strié. Les labelles obtenu sur les zones d'activation maximales sont également indiqués.
+	\label{fig:heatmaps}}
+	
+\end{figure}
+
+
+On remarque sur les carte d'activation que l'objet correspond à une zone d'activation élevé. 
+Par contre, en regardant les labels, plusieurs objets différents peuvent être associée à cette région. 
+Ces résultats sont en relation avec les résultats relativement faibles obtenu précédemment avec la classification. 
+En revanche, cette méthode permet d'identifier les régions d'intérêt de l'image.
+
+Le problème avec l'application d'un réseau de manière strié est le coût de calcul.
+Sur un CPU 4 coeur (la norme sur mobile aujourd'hui), temps de passage d'une image 224 par 224 à travers AlexNet est de ... ms. 
+Si on applique ce même réseau sur une image 500x500 de manière strié, et avec optimisation, est de .. ms.
+Dans le but de pouvoir utiliser des images plus grandes, et ainsi avoiri une carte d'activation précise, nous pouvons utiliser un réseau entièrement convolutionel.
+Dans la section~\ref{sec:rpn}, nous avons vu que les réseaux entièrement convolutionels pouvaient être utilisés pour la segmentation d'image.
+Dans le cas où nous n'avons pas de base données d'apprentissage de la segmentation, nous entrainons le réseau comme expliqué précédemment, et nous remplaçons les couches entièrement connectées par une couche convolutionelles.
+Nous voyons sur le schéma~\ref{fig:equivalencecouche} qu'il y a une équivalence entre une couche entièrement connectée (figure~\ref{fig:linear}) et une couche convolutionnelle avec un ``kernel'' de taille 1x1 (figure~\ref{fig:conv}).
+L'avantage de la couche convolutionelle est que l'on peut l'applliquer sur n'importe quelle taille d'image (figure~\ref{fig:convBig}). 
+Le temps d'execution du même réseau, sur l'image 500x500 est de ...ms.
+
+
+
+\begin{figure}[htbp]
+\begin{subfigure}{0.32\textwidth}
+\includegraphics[width=\linewidth]{figures/LinearLayer.png}
+\caption{Couche Entièrement connectée} \label{fig:linear}
+\end{subfigure}
+\hspace*{\fill} % separation between the subfigures
+\begin{subfigure}{0.32\textwidth}
+\includegraphics[width=\linewidth]{figures/FConvolutional.png}
+\caption{Couche Convolutionelle} \label{fig:conv}
+\end{subfigure}
+\hspace*{\fill} % separation between the subfigures
+\begin{subfigure}{0.32\textwidth}
+\includegraphics[width=\columnwidth]{figures/FConvolutional2.png}
+\caption{Couche Convolutionelle avec entrée plus grande} \label{fig:convBig}
+\end{subfigure}
+\caption{Exemple d'équivalence entre une couche entièrement connectée et une couche convolutionelle. Le nombre de paramètres est le même, ici $4*2$, ils peuvent donc être copié pour obtenir les mêmes résultats. On peut appliqué la convolution avec une entrée plus grande, en une seule passe.} 
+\label{fig:equivalencecouche}
+\end{figure}
+
+
+
+\section{Apprentissage sur différentes régions}
+
+L'approche présentée précédemment permet de mettre en avant qu'il est possible de detecter les régions sans apprentissage direct de celles-ci.
+Nous pouvons toutefois améliorer les résultats de la detection de régions d'intérêt en faisant un apprentissage fin sur des régions spécifique de l'image, plutôt que sur l'image entière.
+En utilisant différentes échelles et différentes régions, toujours pour apprendre la même classe, nous pouvons forcer le réseau à detecter les régions dans l'image.
+La fonction de coût associé à cette apprentissage est la moyenne de l'entropie croisée entre les régions et entre les échelles. 
+Dans le cas de la classification, la correcte étiquette d'une image est un vecteur $\hat{x}$ de dimension $C$, où $C$ est le nombre de classes, où chaque éléments $\hat{x}_i$ est à zéro si la classe $i$ n'est pas présente, $1$ sinon.
+La sortie du réseau de neurones $x$ est une distribution de probabilité pour chaque classe.
+L'entropie croisée $E$ est définie par :
+
+\begin{equation}
+  E(x,\hat{x}) = -\sum_{i=1}^C \hat{x}_i log(x_i)
+	\label{eq:entropie}
+\end{equation}
+
+Pour une image à une échelle $s$ donnée, définissons $H_s$ et $W_s$ comme respectivement la hauteur et la largeur de la carte de caractéristiques.
+Chaque pixel de la carte d'activation correspond à un sortie du réseau de neurones pour une région de l'image donnée.
+Le nombre de région est donc $H_s*W_s$. 
+Nous notons $x_{h,w}$ la distribution de probabilité (la sortie du réseau) sur la région $(h,w)$.
+Nous définissons la fonction objectif suivante:
+
+\begin{equation}
+ \mathcal{L}(x,\hat{x}) = \frac{1}{S} \sum_{s=1}^S \frac{1}{H_s*W_s} \sum_{h=1}^{H_s} \sum_{w=1}^{W_s} E(x_{h,w}, \hat{x}_{h,w})
+\label{eq:regionloss}
+\end{equation}
+
+qui représente la moyenne de l'entropie croisée de l'ensemble des régions, moyennée sur l'ensemble des echelles de l'image.
+La figure~\ref{regionfinetuning} représente l'apprentissage avec cette fonction objectif. 
+L'idée étant de forcer le réseau de neurones à se concentrer sur certaines régions, pour classifier l'image.
+
+
+\begin{figure}[!htb]
+\centering
+    \includegraphics[width=\linewidth]{figures/Average_Loss.png}
+    \caption{Calcul de la fonction de coût lorsque l'on entraine le réseau sur différentes régions à différentes échelles. L'entropie croisée $E$ est calculé pour chaque segment d'image avant d'être moyenné (equation.~\ref{eq:regionloss}).
+    \label{fig:regionfinetuning}}
+\end{figure}
+
+
+\section{Apprentissage de régions et de similarité}
+
+Une fois l'apprentissage sur les régions réalisé, nous disposons d'un réseau capable de se focaliser sur une certaine région de l'image.
+Nous utilisons ceci pour changer la fonction objectif triple.
+Celle défini précédemment (équation~\ref{eq:objectif}) ne prend pas en compte les régions.
+Si l'on prend en compte comme région d'intérêt les $k$ éléments avec la plus forte activation du réseau, on peut extraire les caractéristiques depuis uniquement cette zone, qui représente la région la plus probable de présence de l'objet.
+Pour la fonction objectif de l'apprentissage, en plus du plongement correct des images positives et négatives, nous ajoutons la classification de cette région avec l'entropie croisée.
+Ce qui donne l'équation suivante :
+
+\begin{equation}
+\mathcal{L}(x,y,z,\hat{x}) =  \alpha \max(0, x \cdot z - x \cdot y + m) +
+(1-\alpha) \frac{1}{k} \sum_{l=1}^k E(x_{h,w}, \hat{x}_{h,w})
+\label{eq:proposedloss}
+\end{equation}
+
+On retrouve le plongement des images $x,y$ et $z$, qui doivent vérifier l'objectif triple (équation~\ref{eq:objectif}.
+Ainsi que la classification des $k$ région de plus forte activation, avec $\alpha$ la régularisation entre les deux objectifs de la fonction de coût.
+
+Dans le but de réaliser cette onction, nous définissons un réseau de neurones entièrement convolutionel, capable de produire une sortie de classification de la région de plus grande activation, ainsi qu'un plongement de cette région.
+Pour ce faire, une couche de ``pooling'' des $k$ régions de plus forte activation est ajouté à la sortie du réseau. 
+En s'inspirant de l'architecture R-MAC~\cite{gordo2016deep}, une normalization $L2$, un décallage et une couche entièrement connectée sont ajoutés à cette sortie.
+Ce pipeline permet de réaliser une PCA (Principal Component Analisys)~\ref{jegou2012negative}.
+Les paramêtres du décalage sont appris par retro-propagation et la couche entièrement connecté permet de réduire la taille du descripteur à la taille désirée pour l'espace de projection $\mathbb{E}$.
+Une normalisation $L2$ est de nouveau opérée pour normiliser le plongement des images.
+
+\begin{figure}[!htb]
+\centering
+    \includegraphics[width=\linewidth]{figures/contrib_deploy.png}
+    \caption{CORRECT MAIS A REFAIRE CAR NOTATION INCORRECT Architecture du réseau proposé basé sur un réseau entièrement connecté pré-entrainé pour detecter les régions d'intérêt.
+    \label{fig:proposednetwork}}
+\end{figure}
+
+Pour l'entrainement de ce réseau, nous utilisons un architecture à trois branches comme précédemment, à laquelle nous ajoutons la classifation des $k$ régions de plus fortes activation, comme montré sur le schéma~\ref{fig:contribtrain}.
+La même stratégie de selection des triplets que celle utilisée précédemment peut être appliquée.
+
+\begin{figure}[!htb]
+    \includegraphics[width=\linewidth]{figures/contrib_train.png}
+    \caption{CORRECT MAIS A REFAIRE CAR NOTATION INCORRECT Proposed architecture for instance search based on an FCN ~\cite{long_fully_2015} for region proposals, at training time
+    \label{fig:contribtrain}}
+\end{figure}
+
+
+\section{Expérimentation}
+
+Nous testons notre approche sur deux collections du projet GUIMUTEIC, CLICIDE et GaRoFou, et nous évaluons grâce au métriques suivantes :
+\begin{itemize}
+	\item La précision à 1 (p@1) : l'image la plus proche contient le même objet.
+	\item La précision moyenne (MAP pour Mean Average Precision) : la moyenne des valeurs de précision des images pertinentes (contenant le même objet) dans la liste ordonnée en fonction des distances.
+\end{itemize}
+
+
+
+
+
+
+\subsection{Paramêtres d'apprentissage}
+
+
+
+Layers selection :
+
+
+The experiments conducted in~\cite{PortazPBMCG17} on those datasets, show that the best results are obtained when fine-tuning the last convolutional layer and above.
+We conducted experiments by first retraining the last layer, and after few epochs and stabilization, add the previous last layer*, and so on.
+This led to the following choices:
+\begin{itemize}
+	\item For the AlexNet architecture, we choose to re-train all layers above and including the last convolutional layer.
+	\item For a ResNet architecture, we re-train all layers above and including the third to last block of convolutional layers. 
+This contains the nine highest convolutional layers in total.
+\end{itemize}
+
+
+This can be explained by the high specialization on the dataset of the last layers of the network.
+On the other side, a large amount of data is required to retrain deeper layers.
+
+
+
+Augmentation de données d'apprentissage : 
+Image retrieval methods focus on problems with few examples and little variability in instance images. 
+This leads to too few data to train a typical CNN model designed for classification, even with fine-tuning.
+One way to overcome this is to augment the data, by randomly applying
+affine transformations, color perturbations and other random transformations.
+
+
+The lack of geometry invariance and scaling invariance of the model can be reduced by randomly rotating and flipping the images and using different scaling, thus we perform this type of data augmentation throughout our experiments.
+
+For data augmentation in order to fine-tune a CNN, we use the
+following values in our experiments:
+\begin{enumerate}
+    \item Rotation: any angle is chosen with the same probability.
+    \item Scaling: the scaling factor is chosen independently for each
+    dimension in the range $[0.75,1.25]$.
+    \item Flipping: with probability $0.5$, images are horizontally
+    flipped.
+\end{enumerate}
+
+
+
+
+Parameter for the Fully Convolutional Network:
+
+The stride of a full network depends on the architecture and is 32
+pixels for the architectures used here: AlexNet and ResNet.
+
+For the processing of the Fully Convolutional networks (step 2 of our proposal, described in part~\ref{sec:contrib}), all images are scaled to have the same number of pixels in the smaller side in order to normalize the sizes of the features present in the images. 
+Note that for large aspect ratios and large scales of the smaller side, the memory consumption of training can be high for single images having a very large aspect ratio.  To limit this spike in memory consumption, the aspect ratios are limited by introducing uniform random noise on the smaller side of images with high aspect ratios. In our experiments, we use a maximal aspect ratio of $2.0$ and images
+at two scales of $448$ and $224$ pixels for the smaller side. We found
+that the AlexNet architecture did not have good convergence behavior,
+thus we used scales of $384$ and $224$ instead.
+
+Notre réseaux est entrainé avec les paramêtres suivants : $\alpha = 0,5$ et $k=6$.
+
+
+\subsection{Résultats}
+\label{sec:resultatregion}
+
+\begin{table*}
+\centering
+\begin{tabular}{|l||c|c||c|c|}
+\hline & \multicolumn{2}{c||}{\emph{Mean Precision@1 (in \%)}} &
+\multicolumn{2}{c|}{\emph{Mean Ave. Precision (in \%)}}\\
+\hline & \emph{CLICIDE} & \emph{GaRoFou} & \emph{CLICIDE} & \emph{GaRoFou}\\
+\hline \emph{Gordo multi-res~\cite{gordo_deep_2016}}
+& 92.73 & 95.65 & 65.49 & 89.32\\ \hhline{|=||=|=||=|=|}
+\hline \emph{AlexNet IN} & 72.73 & 85.87 & 32.71 & 66.11\\
+\hline \emph{AlexNet FT} & 78.18 & 90.76 & 38.51 & 72.92\\
+\hline \emph{AlexNet SS} & 75.76 & 90.20 & 36.20 & 77.73\\
+\hline \emph{AlexNet + Régions} & 81.21 & 83.15 & 45.53 & 71.71\\ 
+\hhline{|=||=|=||=|=|}
+\hline \emph{ResNet E} & 72.12 & 85.33 & 40.99 & 70.15\\
+\hline \emph{ResNet Classif} & 79.39 & 94.57 & 75.11 & \textbf{93.44}\\
+\hline \emph{ResNet SS} & 85.45 & 95.11 & \textbf{83.00} & 91.90\\
+\hline \emph{ResNet + Régions} & \textbf{94.55} & \textbf{96.20}
+& 82.94 & 91.83\\
+\hline
+\end{tabular}
+\caption{Précision@1 et MAP des différentes approches sur les collections CLICIDE et GaRoFou.
+\label{tab:results}}
+\end{table*}
+
+
+
+Le tableau~\ref{tab:results} présente les résultats obtenu par notre méthode.
+Les résultats obtenus sont comparés avec ceux obtenu précédemment (section~\ref{sec:resultatsimilarite}).
+Ils confirment que la précision moyenne 
+
+Table~\ref{tab:results} confirms these observations when taking into
+account the mean average precision of the ResNet-50
+and the convolutional features of networks pre-trained on ImageNet.
+The difference is more than 10 points gained in mean
+average precision even when comparing against the ResNet architecture.
+This means that a ResNet fully optimized for image matching captures the
+visual information much better than just the convolutional features
+of a pre-trained network. This is expected, since that was one of the
+goals of the approach proposed by Gordo et al.~\cite{gordo_deep_2016}.
+
+Another observation we can make from Table~\ref{tab:results} is that
+fine-tuning a network on the reference dataset consistently out-performs
+a pre-trained network.
+This shows that transfer learning is very powerful for small datasets with
+many classes. Indeed, networks with many parameters such as AlexNet and
+ResNet could not have been trained on such small datasets with
+uninitialized weights.
+
+However, when comparing the classification fine-tuning method with the
+simplified Siamese architecture (fine-tuning with a triplet loss),
+it is not as clear which one performs better.
+From the results, we can see that the classification fine-tuning has a better
+performance for AlexNet while the triplet loss fine-tuning has a better
+performance for ResNet-152. This is most likely due to two factors: the
+hyper-parameters when training the Siamese AlexNet were not perfectly
+suited, hence the convergence behavior is not as good as with the Siamese
+ResNet. Furthermore, the AlexNet fine-tuned for classification has a much
+larger descriptor of dimension 9216 versus the descriptor of dimension
+2048 of the simplified Siamese architecture. This may explain that
+the simplified Siamese architecture performs worse in this case.
+
+Finally, when comparing the proposed architecture with the previous ones,
+it is clear that the proposed architecture out-performs all of them.
+It achieves higher precision@1 as well as higher mean average precision,
+especially when combined with the instance feature augmentation. 
+The comparison with the ResNet-50 from Gordo et al~\cite{gordo_deep_2016} is difficult though. This is because on the one hand, our proposed
+network is trained on the reference dataset used when comparing images,
+giving it an unfair advantage. On the other hand, the ResNet-50 is trained on the much larger Landmarks dataset
+~\cite{babenko_neural_2014}, giving it the advantage of data volume.
+The training methodology developed by Gordo et al. is not applicable
+to a small, clean dataset, such as the ones used in our evaluation.
+
+
+\begin{figure}
+  \centering
+  \begin{minipage}[c]{.33\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/11J-0521.JPG}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.33\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/11J-1.JPG}
+  \end{minipage}
+  \begin{minipage}[c]{.32\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/11J-4.JPG}
+    %\caption{Heat-map for 10A\label{fig:sample1_hm}}
+  \end{minipage}
+
+  \begin{minipage}[c]{.33\linewidth}
+    \centering
+    \includegraphics[width=\textwidth, angle=270]{figures/23D-0740.JPG}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.33\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/23D-2.JPG}
+  \end{minipage}
+  \begin{minipage}[c]{.32\linewidth}
+  	\centering
+    \includegraphics[width=\textwidth, angle=270]{figures/23D-1.JPG}
+    %\caption{Heat-map for 10A\label{fig:sample1_hm}}
+  \end{minipage}
+  
+  \begin{minipage}[c]{.33\linewidth}
+    \centering
+    \includegraphics[width=\textwidth, angle=270]{figures/1C-0454.JPG}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.33\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/1.png}
+  \end{minipage}
+  \begin{minipage}[c]{.32\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/1C-0.JPG}
+    %\caption{Heat-map for 10A\label{fig:sample1_hm}}
+  \end{minipage}
+  
+  
+  \begin{minipage}[c]{.33\linewidth}
+    \centering
+    \includegraphics[width=\textwidth, angle=270]{figures/5B-0506.JPG}
+  \end{minipage} \hfill
+  \begin{minipage}[c]{.33\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/2.png}
+  \end{minipage}
+  \begin{minipage}[c]{.32\linewidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/5B-0.JPG}
+    %\caption{Heat-map for 10A\label{fig:sample1_hm}}
+  \end{minipage}
+  
+\caption{Success and Failing examples. The first column are test queries. The second column are the closest image from the dataset that the system found.\label{fig:failing}}
+\end{figure}
+
+The figure~\ref{fig:failing} shows some example of success and failure of the system.
+The first two lines are successfully recognize images.
+The last two are failing examples. 
+Each line represents the query, and the two first images return by the system. The system fail if the first image returned do not represent the same instance than the query. 
+On the two failed example, the system successfully return the correct image, but as second closest image.
+
+
+
+\subsection{Augmentation de données}
+
+%Query Expansion~\cite{chum_total_2007} in Image Retrieval, using deep learning, like shown by Gordo et al~\cite{gordo_end--end_2016}, is possible and relies on a combination of the image descriptor and the descriptors of the top $k$ retrieved results.
+%This new descriptor is used to perform a second query, which gives the final result.
+
+%Furthermore, we do not expect query expansion to provide any major improvements in our research problem, since we expect to have very few images returned. 
+%This means the only plausible value of $k$ would be $k=1$.
+
+Dans le but d'améliorer la représentation des images, une méthode appelé ``Database-side feature augmentation''~\cite{turcot_better_2009,arandjelovic_three_2012}, consiste à créer de nouveaux éléments dans l'espace de projection.
+Ces élements servent à 
+ proposes to combine descriptors of the reference images in order to form better database-side descriptors.
+Every reference descriptor is simply replaced by a combination of itself and the $k$ nearest neighbors. 
+This combination is computed as a weighted sum, weighted by the rank of the neighbors with respect to $k$ (the closest neighbor has the highest weight and the $k$-th neighbor the lowest).
+
+In our work, we use a technique called Instance Feature Augmentation.
+We use the fact that we know the corresponding label for each image in our dataset.
+For each label, we compute the representation of an instance by averaging the features of every images corresponding to this label. 
+This representation is added to the dataset as a new instance.
+We show that this approach does not improve mean precision@1, but gives a better Mean Average Precision. 
+This suggests that the internal representation of the instance is improved. 
+
+
+\begin{table*}
+\centering
+\begin{tabular}{|l||c|c||c|c|}
+\hline & \multicolumn{2}{c||}{\emph{Mean Precision@1 (in \%)}} &
+\multicolumn{2}{c|}{\emph{Mean Ave. Precision (in \%)}}\\
+\hline & \emph{CLICIDE} & \emph{GaRoFou} & \emph{CLICIDE} & \emph{GaRoFou}\\
+\hline \emph{Proposed AlexNet} & 81.21 & 83.15 & 45.53 & 71.71\\
+\hline \emph{Proposed AlexNet (IFA)} & 80.61 & 82.61 & 71.02 & 81.66\\ 
+\hhline{|=||=|=||=|=|}
+\hline \emph{Proposed ResNet-152} & \textbf{94.55} & \textbf{96.20}
+& 82.94 & 91.83\\
+\hline \emph{Proposed ResNet-152 (IFA)} & 93.94 & 95.11
+& \textbf{94.23} & \textbf{93.86}\\
+\hline
+\end{tabular}
+\caption{Mean precision@1 and mean average precision evaluation results for the CLICIDE and GaRoFou datasets.
+\label{tab:results}}
+\end{table*}
+

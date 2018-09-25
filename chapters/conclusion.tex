@@ -1,10 +1,58 @@
-\begin{savequote}[75mm] 
-Nulla facilisi. In vel sem. Morbi id urna in diam dignissim feugiat. Proin molestie tortor eu velit. Aliquam erat volutpat. Nullam ultrices, diam tempus vulputate egestas, eros pede varius leo.
-\qauthor{Quoteauthor Lastname} 
-\end{savequote}
-
 \chapter{Conclusion}
 \label{chap:conclusion}
 
 
-Conclusion
+Cette thèse s'est intéressée au problème de l'accès à l'information en mobilité, dans le cadre du projet GUIMUTEIC.
+Ce projet vise à équiper les visiteurs de lieux touristiques avec un audio-guide, équipé d'une caméra pour l'aide à la visite.
+Les problématiques soulevées par ce projet sont les suivantes : 
+
+\begin{itemize}
+	\item Donner accès à de l'information pertinente pendant la visite de manière automatique
+	\item Identifier à quel moment l'utilisateur désire avoir accès à cette information
+\end{itemize}
+
+Des problématiques de déploiement du système viennent s'ajouter à celles-ci, comme le fait d'être sur un appareil mobile, sur lequel doivent fonctionner tous les outils développés dans cette thèse.
+Il a fallu également déterminer quels sont les gestes utiles pour l'interaction.
+Pour cela, des séances de conceptions participatives avec des utilisateurs ont été organisées.
+
+Ce travail a donné lieu aux contributions suivantes.
+Dans le chapitre~\ref{sec:similarite}, nous avons présenté une méthode pour la reconnaissance d'instances sur des corpus de petite taille.
+Nous avons pour cela adapté à nos contraintes les systèmes de l'état de l'art utilisant des réseaux siamois à trois branches pour l'apprentissage de similarité entre les images.
+Nous avons définie une nouvelle fonction objectif, utilisant le produit scalaire pour un calcul rapide de similarité entre les images.
+Nous avons également proposé une nouvelle méthode de sélection de triplets pour l'apprentissage, permettant de résoudre le problème d'apprentissage sur des corpus de petite taille.
+Ceci nous a permi d'obtenir les mêmes résultats que l'état de l'art sur notre corpus, avec une méthode plus simple, ne nécessitant pas l'annotation de régions annotées sur les images.
+
+Dans le chapitre~\ref{chap:regions}, pour améliorer la représentation des images pour le calcul de similarité, nous avons proposé une méthode d'apprentissage des régions non supervisé.
+Elle permet, en maximisant l'entropie croisée sur l'image à différentes échelles, et sur différentes régions, d'apprendre les régions les plus susceptibles de contenir un objet d'intérêt.
+Ce qui nous a amené à développer une nouvelle fonction objectif, basé sur celle proposée précédemment, mais qui ajoute le classification de la région d'intérêt.
+Ceci nous permet d'avoir de meilleurs résultats que les solutions de l'état de l'art sur nos corpus, en passant de 92.73\% à 94.55\% en précision à un (plus proche voisin) et de 65.49\% à 83.00\% pour la MAP (Mean Average Precision).
+
+Cette thèse propose aussi une solution au problème de la détection de gestes en mobilité. Nous avons proposé deux nouveaux blocs de convolutions, S1-FW et S2-FW, que permettent de conserver les informations provenant de différentes trames de la vidéo.
+Cela nous a permis de proposer une nouvelle micro-architecture de réseau profond qui réalise une fusion tardive des informations temporelles.
+Nous avons étudié les effets de la position de la fusion des informations temporelles dans le réseau, et nous avons noté que la fusion tardive donne de meilleurs résultats.
+Pour l'utilisation sur mobile, nous préconisons une fusion précoce pour limiter le nombre de paramètres, avec un gain d’environ 20\%.
+La micro-architecture que nous avons proposée obtient des résultats similaires aux approches de l'état de l'art sur notre corpus de reconnaissance de geste, mais avec un nombre réduit de paramètres.
+
+Cependant, l’utilisation  de micro-architecture pour la tâche de reconnaissance d’instances n’est pour le moment pas envisageable.
+L’écart de performance entre des réseaux type AlexNet et ResNet sont important, et nous préconisons l’utilisation de réseau plus profonds pour une meilleure représentation des images.
+Pour GUIMUTEIC, le choix le plus évident semble être de ne détecter les oeuvres que lorsque que l'utilisateur réalise un geste ou la réponse nécessite une information sur l'environnement du visiteur.
+
+Un ensemble de collections d’images et de vidéos ont été créées pour évaluer toutes les propositions faites dans cette thèse.
+Ces collections sont mises à disposition en accès libre à la communauté.
+
+Les travaux présentés dans cette thèse peuvent donner lieu à de nombreux travaux futurs.
+Dans un premier temps, la flexibilité de la méta-architecture proposée pour la recherche d’instances permet son utilisation avec différents modèles de réseaux de neurones. Des modèles plus récents comme Inception ou DenseNet pourraient améliorer les résultats.
+Ceci permettrait par la suite de réfléchir à une diminution du nombre de paramètres et de complexité du réseau, pour faciliter l’utilisation mobile. 
+Pour la reconnaissance de gestes, la micro-architecture proposée a tendance à sur-apprendre plus facilement que les modèles de l'état de l'art.
+C’est un problème qu’il faut adresser pour envisager d’autres applications basé sur cette architecture.
+
+Cette thèse soulève des problématiques à plus long terme pour l’aide à la visite de lieux touristiques. 
+La fusion dans un seul réseau des deux problèmes que nous avons adressés, la recherche d’instances et la détection de gestes, est envisageable avec des approches d’apprentissage multi-tâches (multi-task learning).
+Cela permettrait une économie de temps de calcul et de mémoire considérable pour l’utilisation mobile.
+Le dispositif GUIMUTEIC est composé d’autres capteurs en plus de la caméra, avec par exemple des accéléromètres, un magnétomètre et un gyroscope. 
+Des approches multi-modales pour l’apprentissage de l'environnement sont donc possibles. 
+Pour aller plus loin, nous envisageons également l’apprentissage des parcours type dans le musée, pour une visite guidée basée sur les habitudes des visiteurs.
+Ceci permettrait d’envisager GUIMUTEIC comme un vrai guide, et non plus comme un simple assistant de visite, comme il a été demandé dans les études participatives.
+Nous espérons que la mise à dispositions des collections présentées dans cette thèse pourra aider pour l’étude de ces problématiques.
+
+
